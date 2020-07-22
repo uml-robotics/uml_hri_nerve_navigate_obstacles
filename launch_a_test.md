@@ -12,7 +12,7 @@ User gets to pick from these options;
 	    - add more
     
     - If a world with obstacles is selected, user also selects:
-        - A belief condition (ie belief about the presence of obstacles, used for planning):
+        - A *belief* condition (ie belief about the presence of obstacles, used for planning):
             - `fN`, `fP`, `tN`, `tP`
 
     - Select obstacle type/size/dimensionality:
@@ -27,17 +27,33 @@ User gets to pick from these options;
 	    - `sparse`, `dense`, `patchy`, `??`
 	    - define obstacles using models that already exist, a certain relative distance from eachother; then you can predefine groups of obstacles and place them where you want; make a directory of different obstacle scenarios
 
-3. select test:
+3. #### select test:
     - `go_to_goal`
 
-4. select number of repetitions:
+4. #### select number of repetitions:
     - `10`, `30`, `n`
 
 
 ### Sample test execution:
 
 ```bash
-launch_nav_test_sim -rP -mNerv1Obs -bT -t3d -p -n30
+./launch_nav_test_sim -rP -mNerv1Obs -bT -t3d -p -n30
+```
+which could output something like:
+```
+Running navigation test for Pioneer in Nerve1 world w/ 3d obstacles...
+
+...
+
+Test completed without errors.
+
+Test:                P_Nerv1_Obs_T_3d_30_7-21-20
+Test directory:      tests/P_Nerv1_Obs_T_3d_30_7-21-20/
+Sim time:            4 m 16 s
+Results for 30 reps: 29 successes, 1 failure, 0 collisions
+Test result logs:    ../results.csv
+Robot position logs: ../robot_position_logs.csv
+Something else:      ../something_else.csv
 ```
 
 
@@ -48,10 +64,6 @@ launch_nav_test_sim -rP -mNerv1Obs -bT -t3d -p -n30
 - registering success: detection for when robot finishes successfully
 - registering failure: need ways to register the 2 ways test could fail: collision, or didn't reach goal;
     - registering collisions in gazebo (and where in map it happened?)
-
-
-
-  
 
 - Gazebo position publisher for robot
 	- Program should record the robot's global position at all times during the current test. 
@@ -64,7 +76,3 @@ launch_nav_test_sim -rP -mNerv1Obs -bT -t3d -p -n30
 - setup go_to_goal program w/ pete's package
 - for each repetition, we're clearing the costmap
     - need to add service to clear costmap!
-
-
-
-
