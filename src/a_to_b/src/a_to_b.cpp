@@ -1,47 +1,30 @@
 /*	Author: Daniel Lynch
  *	File:	a_to_b/src/a_to_b.cpp
- *	Task:	Simple program to route Fetch to 1 of 4 corners randomly.
+ *	Task:	Program to move robot from point A to point B, n times.
  *
  */
-#include <ros/ros.h>
-#include <std_srvs/Empty.h>
-#include <geometry_msgs/Point.h>
-
 #include "go_to_goal.h"
-
-//auxiliary function for simple geometry_msgs::Point initializing
-geometry_msgs::Point pointInit(double x, double y, double z) {
-	geometry_msgs::Point pp;
-	pp.x = x;
-	pp.y = y;
-	pp.z = z;
-	return pp;
-}
 
 int main(int argc, char* argv[]) {
 
-	ros::init(argc, argv, "wander_node");
+	ros::init(argc, argv, "a_to_b_node");
 	ros::NodeHandle nh;
-	std_srvs::Empty srv;	
-	ros::ServiceClient clearCostmap = nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmap");
-	ros::Rate loop_rate(50);
+	
+	ros::Rate loop_rate(10);
 
 	geometry_msgs::Point pA, pB;
-	GoToGoal goal;
-	pA = pointInit(0.0, 4.0, 0.0);
-	pB = pointInit(0.0, 9.0, 0.0);
+	pA = GoToGoal::pointInit(0.0, 4.0, 1.0);
+	pB = GoToGoal::pointInit(0.0, 9.0, 0.0);
+
+	GoToGoal goal(&nh, "nerve1", 10);
 
 	while (ros::ok()){
 
 		//visit point
 		goal.visit( pA );
-
-		//clearcostmap then sleep for half a second
-		clearCostmap.call(srv);
-		ros::Duration(0.5).sleep();
+		//goal.visit( pB );
 		
-	}
-	
+	}	
 	ros::spinOnce();
 
 	return 0;
