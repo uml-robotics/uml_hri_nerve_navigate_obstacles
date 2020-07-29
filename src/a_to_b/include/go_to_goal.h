@@ -9,56 +9,98 @@
 #ifndef GO_TO_GOAL_H_
 #define GO_TO_GOAL_H_
 
-#include <string>
 #include <unordered_map>
-#include <vector>
+#include <utility>
 
 #include <boost/bind.hpp> // needed to pass in the "this" pointer in ac_.sendGoal(...)
 
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
-#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <std_srvs/Empty.h>
 
 //TODO
-// add costmap-clearing service
+// check costmap-clearing service function; 
+// add counters for successes/failures; output summary at program completion
+
+//auxiliary function for simple geometry_msgs::Point initializing
+geometry_msgs::Point pointInit(double x, double y, double z=0.0) {
+	geometry_msgs::Point pp;
+	pp.x = x;
+	pp.y = y;
+	pp.z = z;
+	return pp;
+}
+
+struct NerveMapGoals {
+	/* Dictionary storing points A and B for each Nerve map.
+	 * TODO
+	 *  - double-check A,B for nerve2 and nerve3
+	 *  - add entries for new maps
+	 *
+	 * Ref: 
+	 * Nerve maps 1-3: https://github.com/uml-robotics/uml_3d_race/tree/master/resources/maps
+	 */
+	using mapTable = std::unordered_map<std::string,std::pair<geometry_msgs::Point,geometry_msgs::Point>>;
+    mapTable maps_;
+
+	NerveMapGoals() {
+		maps_ = {
+		{"nerve1", std::make_pair( pointInit(0.0, 4.0), pointInit(0.0, 9.0) )},
+		{"nerve2", std::make_pair( pointInit(0.0, 6.0), pointInit(0.0, 11.0) )},
+		{"nerve3", std::make_pair( pointInit(0.0, 8.0), pointInit(0.0, 13.0) )}
+	  };
+	}
+
+	std::pair<geometry_msgs::Point,geometry_msgs::Point> operator()(std::string name) {
+		return maps_.at(name); 
+	}
+};
 
 class GoToGoal
 {
+	using moveBaseAction = actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>;
+
   public:
-	GoToGoal(ros::NodeHandle* nodehandle, std::string mapname, int reps);
-	void visit(double, double, double, double, double, double);
-	void visit(const geometry_msgs::Point& p);
+	GoToGoal(ros::NodeHandle* nodehandle, std::string mapname, int n);
+	void run();
+	
+	
 	
 	static geometry_msgs::Point pointInit(double x, double y, double z);
 
   private:	
 	ros::NodeHandle nh_;
-	//ros::ServiceClient clearCostmap_;
+	ros::ServiceClient clearCostmap_;
 	move_base_msgs::MoveBaseGoal goal_;
-	//std_srvs::Empty srv_;
-	int n_;
-	
-	//create a map_name->goal points
-	std::unordered_map<std::string,std::vector<geometry_msgs::Point>> maps_;
+	std_srvs::Empty srv_;
+	int reps_;
+	geometry_msgs::Point A_,B_; // first and second goals
 
-	typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> FetchMoveBaseClient;
-	FetchMoveBaseClient ac_;
+	//mapTable maps_;	
+	moveBaseAction ac_;
 	
 	void sendGoalCallback(const actionlib::SimpleClientGoalState& state);
-	//void sendGoal();
-	//void initServices();
-	//void clearCostmap();
+	void visit(const geometry_msgs::Point& p);
+	void visit(double, double, double, double, double, double, double);
+	void sendGoal();
+	void initServices();
+	void clearCostmap();
 };
 
-GoToGoal::GoToGoal(ros::NodeHandle* nodehandle, std::string mapname, int reps)
-	 : nh_(*nodehandle), ac_("move_base", true), n_(reps) 
+GoToGoal::GoToGoal(ros::NodeHandle* nodehandle, std::string mapname, int n)
+	 : nh_(*nodehandle), ac_("move_base", true), reps_(n)
 {
-	
 	ROS_INFO("Initializing GoToGoal constructor");
-	//initServices();
+
+	//get points A and B for specified map
+	NerveMapGoals getPoints;
+	std::tie(A_,B_) = getPoints(mapname);
+
+	initServices();
+
 	// wait for action server to come up
 	while (!ac_.waitForServer(ros::Duration(5.0))) {
 		ROS_INFO("Waiting on the move_base action server to come up");
@@ -68,19 +110,19 @@ GoToGoal::GoToGoal(ros::NodeHandle* nodehandle, std::string mapname, int reps)
 
 }
 
-// void GoToGoal::initServices() {
-// 	ROS_INFO("Initializing clear_costmap service");
-// 	clearCostmap_ = nh_.serviceClient<std_srvs::Empty>("/move_base/clear_costmap");
-// }
+void GoToGoal::initServices() {
+	ROS_INFO("Initializing clear_costmap service");
+	clearCostmap_ = nh_.serviceClient<std_srvs::Empty>("/move_base/clear_costmap");
+}
 
-// void GoToGoal::clearCostmap() {
-// 	//clearcostmap then sleep for half a second
-// 	clearCostmap_.call(srv_);
-// 	ros::Duration(0.5).sleep();
-// }
+void GoToGoal::clearCostmap() {
+	//clearcostmap then sleep for half a second
+	clearCostmap_.call(srv_);
+	ros::Duration(0.5).sleep();
+}
 
-void GoToGoal::visit(double x, double y, double o_x=0.0, double o_y=0.0, double o_z=0.0, double o_w=1.0) {
-	/* go_to_goal: given x,y coordinates, attempt action move_base */
+void GoToGoal::visit(double x, double y, double z, double o_x=0.0, double o_y=0.0, double o_z=0.0, double o_w=1.0) {
+	/* given x,y,z,ox,oy,oz,ow, attempt action move_base */
 
 	// frame parameters
 	goal_.target_pose.header.frame_id = "map";
@@ -89,19 +131,18 @@ void GoToGoal::visit(double x, double y, double o_x=0.0, double o_y=0.0, double 
 	// goal_ pose
 	goal_.target_pose.pose.position.x = x;
 	goal_.target_pose.pose.position.y = y;
-	goal_.target_pose.pose.position.z = 0.0;
-	goal_.target_pose.pose.orientation.x = 0.0;
-	goal_.target_pose.pose.orientation.y = 0.0;
-	goal_.target_pose.pose.orientation.z = 0.0;
-	goal_.target_pose.pose.orientation.w = 1.0;
+	goal_.target_pose.pose.position.z = z;
+	goal_.target_pose.pose.orientation.x = o_x;
+	goal_.target_pose.pose.orientation.y = o_y;
+	goal_.target_pose.pose.orientation.z = o_z;
+	goal_.target_pose.pose.orientation.w = o_w;
 
-	
-    //sendGoal();
-    ROS_INFO("Sending goal...");
-	// when sending a goal, need to register the callback to use on movebase status update
-	// (see https://answers.ros.org/question/259418/sending-goals-to-navigation-stack-using-code/)
-	ac_.sendGoal(goal_, boost::bind(&GoToGoal::sendGoalCallback, this, _1), FetchMoveBaseClient::SimpleActiveCallback());
-	ac_.waitForResult();
+    sendGoal();
+ //    ROS_INFO("Sending goal...");
+	// // when sending a goal, need to register the callback to use on movebase status update
+	// // (see https://answers.ros.org/question/259418/sending-goals-to-navigation-stack-using-code/)
+	// ac_.sendGoal(goal_, boost::bind(&GoToGoal::sendGoalCallback, this, _1), moveBaseAction::SimpleActiveCallback());
+	// ac_.waitForResult();
 	// status is processed in our callback
 }
 
@@ -119,45 +160,46 @@ void GoToGoal::visit(const geometry_msgs::Point& p) {
 	goal_.target_pose.pose.orientation.z = 0.0;
 	goal_.target_pose.pose.orientation.w = 1.0;
 
-    //sendGoal();
 	ROS_INFO("Received a geometry_msgs::Point, and now Sending goal...");
+	sendGoal();
 	
-	ac_.sendGoal(goal_, boost::bind(&GoToGoal::sendGoalCallback, this, _1), FetchMoveBaseClient::SimpleActiveCallback());
-	ac_.waitForResult();		
+	// ac_.sendGoal(goal_, boost::bind(&GoToGoal::sendGoalCallback, this, _1), moveBaseAction::SimpleActiveCallback());
+	// ac_.waitForResult();		
 }
-
-// void GoToGoal::sendGoal() {
-// 	ROS_INFO("Sending goal...");
-// 	// when sending a goal, need to register the callback to use on movebase status update
-// 	// (see https://answers.ros.org/question/259418/sending-goals-to-navigation-stack-using-code/)
-// 	ac_.sendGoal(goal_, boost::bind(&GoToGoal::sendGoalCallback, this, _1), FetchMoveBaseClient::SimpleActiveCallback());
-// 	ac_.waitForResult();
-// }
 
 void GoToGoal::sendGoalCallback(const actionlib::SimpleClientGoalState& state) {	
 	ROS_INFO("Hello from sendGoalCallback. Finished in state [%s]", state.toString().c_str());
 	if (ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
 			ROS_INFO("I did it! What do I win?");
 
-			// //clearcostmap then sleep for half a second
-			// clearCostmap_.call(srv_);
-			// ros::Duration(0.5).sleep();
+			clearCostmap();
 	        
 	} else {
 			ROS_INFO("Whoops! Can I try again?");
-			// go back to start, try again?
+			
+			clearCostmap();
 
 	}
 }
 
-//auxiliary function for simple geometry_msgs::Point initializing
-geometry_msgs::Point GoToGoal::pointInit(double x, double y, double z) {
-	geometry_msgs::Point pp;
-	pp.x = x;
-	pp.y = y;
-	pp.z = z;
-	return pp;
+void GoToGoal::sendGoal() {
+	ROS_INFO("Sending goal...");
+	// when sending a goal, need to register the callback to use on movebase status update
+	// (see https://answers.ros.org/question/259418/sending-goals-to-navigation-stack-using-code/)
+	ac_.sendGoal(goal_, boost::bind(&GoToGoal::sendGoalCallback, this, _1), moveBaseAction::SimpleActiveCallback());
+	ac_.waitForResult();
 }
+
+void GoToGoal::run() {
+	//move to starting (A) position
+	visit(A_);
+	ROS_INFO("Here I go!");
+	for (int i=0; i<reps_; i++) {
+		visit(B_);
+		visit(A_);
+	}
+}
+
 
 
 #endif //GO_TO_GOAL_H_
