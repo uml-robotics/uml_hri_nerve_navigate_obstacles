@@ -9,24 +9,31 @@ int main(int argc, char* argv[]) {
 
 	ros::init(argc, argv, "a_to_b_node");
 	ros::NodeHandle nh;
-	
 	ros::Rate loop_rate(10);
-
-	geometry_msgs::Point pA, pB;
-	pA = GoToGoal::pointInit(0.0, 4.0, 1.0);
-	pB = GoToGoal::pointInit(0.0, 9.0, 0.0);
 
 	GoToGoal goal(&nh, "nerve1", 10);
 
-	while (ros::ok()){
+	goal.run();
 
-		//visit point
-		goal.visit( pA );
-		//goal.visit( pB );
-		
-	}	
 	ros::spinOnce();
 
 	return 0;
 
 }
+/*
+ 
+ cleanup above main to look like:
+
+int main(int argc, char* argv[]) {
+
+	ros::init(argc, argv, "a_to_b_node");
+	ros::NodeHandle nh;
+
+	GoToGoal goal(&nh, "nerve1", 10);
+
+	ros::spin();
+
+	return 0;
+
+}
+*/
