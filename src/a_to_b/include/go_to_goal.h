@@ -66,18 +66,14 @@ class GoToGoal
   public:
     GoToGoal(ros::NodeHandle* nodehandle, std::string mapname, int n);
     void run();
-    
-    
-    
-    static geometry_msgs::Point pointInit(double x, double y, double z);
 
   private:  
     ros::NodeHandle nh_;
     ros::ServiceClient clearCostmap_;
     move_base_msgs::MoveBaseGoal goal_;
     std_srvs::Empty srv_;
-    int reps_;
-    geometry_msgs::Point A_,B_; // first and second goals
+    int reps_, successes_ = 0;
+    geometry_msgs::Point A_, B_; // first and second goals
 
     //mapTable maps_;   
     moveBaseAction ac_;
@@ -89,6 +85,7 @@ class GoToGoal
     void initServices();
     void clearCostmap();
 };
+
 
 GoToGoal::GoToGoal(ros::NodeHandle* nodehandle, std::string mapname, int n)
      : nh_(*nodehandle), ac_("move_base", true), reps_(n)
@@ -107,7 +104,6 @@ GoToGoal::GoToGoal(ros::NodeHandle* nodehandle, std::string mapname, int n)
     }
     ROS_INFO("move_base action server is up");
 
-
 }
 
 void GoToGoal::initServices() {
@@ -116,7 +112,7 @@ void GoToGoal::initServices() {
 }
 
 void GoToGoal::clearCostmap() {
-    //clearcostmap then sleep for half a second
+    //clear costmap then sleep for half a second
     clearCostmap_.call(srv_);
     ros::Duration(0.5).sleep();
 }
@@ -138,12 +134,7 @@ void GoToGoal::visit(double x, double y, double z, double o_x=0.0, double o_y=0.
     goal_.target_pose.pose.orientation.w = o_w;
 
     sendGoal();
- //    ROS_INFO("Sending goal...");
-    // // when sending a goal, need to register the callback to use on movebase status update
-    // // (see https://answers.ros.org/question/259418/sending-goals-to-navigation-stack-using-code/)
-    // ac_.sendGoal(goal_, boost::bind(&GoToGoal::sendGoalCallback, this, _1), moveBaseAction::SimpleActiveCallback());
-    // ac_.waitForResult();
-    // status is processed in our callback
+
 }
 
 void GoToGoal::visit(const geometry_msgs::Point& p) {
@@ -162,16 +153,14 @@ void GoToGoal::visit(const geometry_msgs::Point& p) {
 
     ROS_INFO("Received a geometry_msgs::Point, and now Sending goal...");
     sendGoal();
-    
-    // ac_.sendGoal(goal_, boost::bind(&GoToGoal::sendGoalCallback, this, _1), moveBaseAction::SimpleActiveCallback());
-    // ac_.waitForResult();     
+
 }
 
 void GoToGoal::sendGoalCallback(const actionlib::SimpleClientGoalState& state) {    
     ROS_INFO("Hello from sendGoalCallback. Finished in state [%s]", state.toString().c_str());
     if (ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
             ROS_INFO("I did it! What do I win?");
-
+            successes_++;
             clearCostmap();
             
     } else {
@@ -198,8 +187,7 @@ void GoToGoal::run() {
         visit(B_);
         visit(A_);
     }
+    ROS_INFO("All done! %d successes", successes_);
 }
-
-
 
 #endif //GO_TO_GOAL_H_
