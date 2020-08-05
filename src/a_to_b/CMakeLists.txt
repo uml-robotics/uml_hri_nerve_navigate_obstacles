@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   move_base_msgs
   roscpp
+  std_msgs
+  tf
 )
 
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -20,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES a_to_b
-#  CATKIN_DEPENDS actionlib geometry_msgs move_base_msgs roscpp
+  CATKIN_DEPENDS actionlib geometry_msgs move_base_msgs roscpp tf std_msgs 
 #  DEPENDS system_lib
 )
 
@@ -33,12 +35,15 @@ include_directories(
 )
 
 
+# a_to_b
 add_executable(${PROJECT_NAME}_node src/a_to_b.cpp)
-
 target_link_libraries(
    ${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
 )
-
 add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS})
 
+# PositionPublisher
+#add_executable(position_publisher_node src/PositionPublisher.cpp)
+#target_link_libraries(position_publisher_node ${catkin_LIBRARIES} )
+#add_dependencies(position_publisher_node ${catkin_EXPORTED_TARGETS})

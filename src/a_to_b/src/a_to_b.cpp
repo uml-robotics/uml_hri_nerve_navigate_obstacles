@@ -9,13 +9,12 @@ int main(int argc, char* argv[]) {
 
     ros::init(argc, argv, "a_to_b_node");
     ros::NodeHandle nh;
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(50);
 
-    GoToGoal goal(&nh, "nerve1", 10);
-
+    GoToGoal goal(&nh, "nerve1", 3);
     goal.run();
 
-    ros::spinOnce();
+    ros::spin();
 
     return 0;
 

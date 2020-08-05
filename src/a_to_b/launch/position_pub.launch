@@ -1,0 +1,35 @@
+<!-- -*- mode: XML -*- -->
+
+<!-- Original Author: Peter Gavriel -->
+<!-- Modified: Daniel Lynch -->
+<!-- Source: https://github.com/uml-robotics/uml_nist_mobility_tools/blob/master/launch/goal_node.launch -->
+
+<launch>
+
+  <!-- Position Publisher Logging -->
+
+  <!-- Resolution is the most important, it affects the incremental distances being tracked -->
+  <arg name="resolution" default="0.50" />
+  <arg name="robot_radius" default="0.26" />
+
+  
+  <arg name="robot" default="pioneer" />
+  <arg name="test" default="nerve1_2012" />
+  <arg name="start_time" value="07-30-2020" />
+  
+  <arg name="log" default="$(arg robot)_$(arg test)_$(arg start_time)" /> 
+
+  <!-- Don't forget to change the logfile path -->
+  <arg name="logfile" default="$(find a_to_b)/$(arg log).csv" />
+  
+
+  <node pkg="tf" type="static_transform_publisher" name="robo_rear" args="-$(arg robot_radius) 0 0 0 0 0 1 /base_link /robot_rear  100"/>
+
+  <node name="position_publisher_node" pkg="a_to_b" type="position_publisher_node">
+    <param name="robot" value="$(arg robot)" />
+    <param name="test" value="$(arg test)" />
+    <param name="resolution" value="$(arg resolution)" />
+    <param name="logfile" value="$(arg logfile)" />
+  </node>
+ 
+</launch>

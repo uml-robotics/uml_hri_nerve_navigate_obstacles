@@ -48,9 +48,9 @@ struct NerveMapGoals {
 
     NerveMapGoals() {
         maps_ = {
-        {"nerve1", std::make_pair( pointInit(0.0, 4.0), pointInit(0.0, 9.0) )},
-        {"nerve2", std::make_pair( pointInit(0.0, 6.0), pointInit(0.0, 11.0) )},
-        {"nerve3", std::make_pair( pointInit(0.0, 8.0), pointInit(0.0, 13.0) )}
+        {"nerve1", std::make_pair( pointInit(0.0, 4.0), pointInit(0.0, 8.0) )},
+        {"nerve2", std::make_pair( pointInit(0.0, 8.0), pointInit(0.0, 12.0) )},
+        {"nerve3", std::make_pair( pointInit(0.0, 12.0), pointInit(0.0, 16.0) )}
       };
     }
 
@@ -113,6 +113,7 @@ void GoToGoal::initServices() {
 
 void GoToGoal::clearCostmap() {
     //clear costmap then sleep for half a second
+
     clearCostmap_.call(srv_);
     ros::Duration(0.5).sleep();
 }
