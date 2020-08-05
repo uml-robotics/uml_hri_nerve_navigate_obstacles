@@ -13,18 +13,13 @@ my_pid=$$
 echo "My process ID is $my_pid"
 
 # Launch a world in Gazebo w/ Pioneer3dx robot model
-echo "*"
-echo "**"
-echo "***"
+# World options: nerve_mobility1, nerve_mobility2, nerve_mobility3
 echo "Launching Gazebo world w/ a Pioneer..."
-echo "***"
-echo "**"
-echo "*"
-roslaunch uml_3d_race gazebo.launch world:=nerve_mobility1 &
+roslaunch uml_3d_race gazebo.launch world:=nerve_mobility3 &
 pid=$!
 sleep 5s
 
-roslaunch uml_3d_race spawn_robot.launch model_name:=pioneer x:=0.0 y:=0.0 yaw:=3.14 &
+roslaunch uml_3d_race spawn_robot.launch model_name:=pioneer x:=0.0 y:=0.0 yaw:=0.0 &
 pid=$!
 sleep 2s
 
@@ -46,6 +41,11 @@ sleep 3s
 # roslaunch octomap_server.launch &
 # pid=$!
 # sleep 2s
+
+# echo "Launching a_to_b_node..."
+# rosrun a_to_b a_to_b_node &
+# pid="$! $pid"
+# sleep 3s
 
 
 trap "echo Killing all processes.; kill -2 $pid; exit" SIGINT SIGTERM
